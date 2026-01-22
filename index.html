@@ -6,21 +6,36 @@
     <title>태니지먼트 강점 약식 진단</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React, ReactDOM, Babel CDN -->
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- React, ReactDOM, Babel CDN - 안정적인 버전 고정 -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;700;900&display=swap');
-        body { font-family: 'Pretendard', sans-serif; }
+        body { 
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; 
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
         .radar-transition { transition: all 1s ease-out; }
+        /* 로딩 중 화면 표시 방지 */
+        [v-cloak] { display: none; }
+        #root:empty {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #6366f1;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
-    <div id="root"></div>
+    <div id="root">잠시만 기다려주세요...</div>
 
     <script type="text/babel">
-        const { useState, useMemo } = React;
+        const { useState, useMemo, useEffect } = React;
 
         const Icons = {
             ChevronLeft: () => (
@@ -98,17 +113,22 @@
                 return counts;
             }, [selections]);
 
+            // 방사형 그래프 설정
             const chartSize = 600; 
             const center = 300;
             const radius = 220; 
+            
+            // 결과 면적 배율 조정 (보라색 영역을 시각적으로 2배 강조하기 위해 visualMaxScore를 6으로 설정)
             const visualMaxScore = 6; 
 
+            // 9시 방향(Math.PI)에서 시작하여 시계 방향으로 배치
             const getAngle = (index) => (Math.PI * 2 * index) / 8 + Math.PI;
 
             const getRadarPoints = () => {
                 return roles.map((role, i) => {
                     const angle = getAngle(i);
                     const score = scores[role.id] || 0;
+                    // 점수에 비례해 반지름 계산 (visualMaxScore 기준)
                     const r = Math.min(radius, Math.max(15, (score / visualMaxScore) * radius)); 
                     const x = center + r * Math.cos(angle);
                     const y = center + r * Math.sin(angle);
@@ -125,18 +145,20 @@
             return (
                 <div className="min-h-screen flex flex-col items-center justify-center p-4">
                     <div className="max-w-2xl w-full bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100">
+                        {/* Header */}
                         <div className="bg-indigo-600 p-6 text-white text-center relative">
                             <h1 className="text-2xl font-bold flex items-center justify-center gap-2">
                                 <Icons.Award /> 태니지먼트 강점 약식 진단
                             </h1>
                             <p className="text-indigo-100 text-sm mt-1 opacity-90">나를 가장 잘 설명하는 단어를 하나만 선택하세요.</p>
                             {!isFinished && (
-                                <div className="absolute bottom-0 left-0 w-full h-1.5 bg-indigo-900/30">
+                                <div className="absolute bottom-0 left-0 w-full h-1.5 bg-indigo-900/30 text-center text-white">
                                     <div className="h-full bg-emerald-400 transition-all duration-500 ease-out" style={{ width: `${progress}%` }}></div>
                                 </div>
                             )}
                         </div>
 
+                        {/* Content Area */}
                         <div className="p-8 md:p-12">
                             {!isFinished ? (
                                 <div className="space-y-10">
@@ -175,40 +197,102 @@
                                     </div>
                                 </div>
                             ) : (
-                                <div className="space-y-8 animate-in fade-in duration-1000">
+                                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
                                     <div className="text-center space-y-2">
-                                        <div className="inline-block px-4 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold mb-2 tracking-widest uppercase">Result Profile</div>
+                                        <div className="inline-block px-4 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold mb-2 tracking-widest uppercase tracking-[0.2em]">Result Profile</div>
                                         <h2 className="text-3xl font-black text-slate-800 tracking-tight">강점 프로필 결과</h2>
                                         <p className="text-slate-500 text-sm">8가지 역량 분포 결과입니다</p>
                                     </div>
 
+                                    {/* Radar Chart Display (결과 면적 시각적 2배 확대 적용) */}
                                     <div className="flex justify-center p-4 bg-slate-50 rounded-[3rem] border border-slate-100 shadow-inner overflow-hidden">
                                         <div className="w-full flex justify-center py-4">
-                                            <svg width="580" height="580" viewBox={`0 0 ${chartSize} ${chartSize}`} className="drop-shadow-2xl overflow-visible flex-shrink-0" style={{ maxWidth: '100%', height: 'auto' }}>
+                                            <svg 
+                                                width="580" 
+                                                height="580" 
+                                                viewBox={`0 0 ${chartSize} ${chartSize}`} 
+                                                className="drop-shadow-2xl overflow-visible flex-shrink-0"
+                                                style={{ maxWidth: '100%', height: 'auto' }}
+                                            >
+                                                {/* Guidelines */}
                                                 {[1, 2, 3, 4, 5, 6].map((tick) => (
-                                                    <polygon key={tick} points={roles.map((_, i) => {
-                                                        const angle = getAngle(i);
-                                                        const r = (tick / visualMaxScore) * radius;
-                                                        return `${center + r * Math.cos(angle)},${center + r * Math.sin(angle)}`;
-                                                    }).join(' ')} fill="none" stroke="#CBD5E1" strokeWidth="1.5" strokeDasharray="6 3" />
+                                                    <polygon
+                                                        key={tick}
+                                                        points={roles.map((_, i) => {
+                                                            const angle = getAngle(i);
+                                                            const r = (tick / visualMaxScore) * radius;
+                                                            return `${center + r * Math.cos(angle)},${center + r * Math.sin(angle)}`;
+                                                        }).join(' ')}
+                                                        fill="none"
+                                                        stroke="#CBD5E1"
+                                                        strokeWidth="1.5"
+                                                        strokeDasharray="6 3"
+                                                    />
                                                 ))}
+                                                
+                                                {/* Axis lines */}
                                                 {roles.map((_, i) => {
                                                     const angle = getAngle(i);
-                                                    return <line key={i} x1={center} y1={center} x2={center + radius * Math.cos(angle)} y2={center + radius * Math.sin(angle)} stroke="#E2E8F0" strokeWidth="2" />;
+                                                    return (
+                                                        <line
+                                                            key={i}
+                                                            x1={center} y1={center}
+                                                            x2={center + radius * Math.cos(angle)}
+                                                            y2={center + radius * Math.sin(angle)}
+                                                            stroke="#E2E8F0"
+                                                            strokeWidth="2"
+                                                        />
+                                                    );
                                                 })}
-                                                <polygon points={getRadarPoints()} fill="rgba(79, 70, 229, 0.45)" stroke="#4F46E5" strokeWidth="7" strokeLinejoin="round" className="radar-transition" />
+
+                                                {/* Result Area Shape (보라색 결과 면적) */}
+                                                <polygon
+                                                    points={getRadarPoints()}
+                                                    fill="rgba(79, 70, 229, 0.45)"
+                                                    stroke="#4F46E5"
+                                                    strokeWidth="7"
+                                                    strokeLinejoin="round"
+                                                    className="radar-transition"
+                                                />
+
+                                                {/* Labels and point indicators */}
                                                 {roles.map((role, i) => {
                                                     const angle = getAngle(i);
                                                     const score = scores[role.id] || 0;
                                                     const labelDist = radius + 60;
                                                     const x = center + labelDist * Math.cos(angle);
                                                     const y = center + labelDist * Math.sin(angle);
+                                                    
                                                     const pointR = Math.min(radius, Math.max(15, (score / visualMaxScore) * radius));
+                                                    
                                                     return (
                                                         <g key={role.id}>
-                                                            <circle cx={center + pointR * Math.cos(angle)} cy={center + pointR * Math.sin(angle)} r="6" fill="#4F46E5" />
-                                                            <text x={x} y={y - 5} textAnchor="middle" dominantBaseline="middle" className="text-[17px] font-black" fill={role.color}>{role.name}</text>
-                                                            <text x={x} y={y + 18} textAnchor="middle" dominantBaseline="middle" className="text-[14px] font-mono font-bold" fill="#94A3B8">{score}점</text>
+                                                            <circle
+                                                                cx={center + pointR * Math.cos(angle)}
+                                                                cy={center + pointR * Math.sin(angle)}
+                                                                r="6"
+                                                                fill="#4F46E5"
+                                                            />
+                                                            <text
+                                                                x={x}
+                                                                y={y - 5}
+                                                                textAnchor="middle"
+                                                                dominantBaseline="middle"
+                                                                className="text-[17px] font-black"
+                                                                fill={role.color}
+                                                            >
+                                                                {role.name}
+                                                            </text>
+                                                            <text
+                                                                x={x}
+                                                                y={y + 18}
+                                                                textAnchor="middle"
+                                                                dominantBaseline="middle"
+                                                                className="text-[14px] font-mono font-bold"
+                                                                fill="#94A3B8"
+                                                            >
+                                                                {score}점
+                                                            </text>
                                                         </g>
                                                     );
                                                 })}
@@ -216,6 +300,7 @@
                                         </div>
                                     </div>
 
+                                    {/* Summary Score Cards */}
                                     <div className="grid grid-cols-2 gap-4 mt-8">
                                         {roles.map(role => (
                                             <div key={role.id} className="flex items-center justify-between p-5 bg-white rounded-2xl border border-slate-100 shadow-sm transition-all hover:shadow-md hover:border-indigo-200">
@@ -235,6 +320,7 @@
                             )}
                         </div>
 
+                        {/* Footer */}
                         <div className="bg-slate-50 p-6 border-t border-slate-100 text-center">
                             <div className="flex flex-col items-center justify-center gap-1 text-[11px] text-slate-400">
                                 <div className="flex items-center gap-2">
